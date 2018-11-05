@@ -1,5 +1,5 @@
 # PIC Assembly
-Códigos em assembly para microcontroladores PICs.  
+Códigos em assembly para microcontroladores PIC.  
 ## Descrição dos programas  
 
 ### SEMÁFORO DE TRÂNSITO (TrafficSemaphore.ASM)  
