@@ -35,7 +35,7 @@ MODELO PARA O **PIC12F675**
 * Qualquer outra tecla pressionada deve piscar, com  período de 100 ms, o LED em GP5 
 * * * *
 ### LCD 4 BITS (LCD.ASM)
-Especificações: 
+**Especificações:**  
 * Essa aplicação deve ser implementada com o kit disponível no LABEC2, que dispõe de um PIC12F675, um registrador de deslocamento e um LCD (desenvolvido por [Gutierrez](https://github.com/gutierrezps)) ; 
 ![Esquematico placa LCD](https://i.imgur.com/cTeNyUo.png)
 * Todas as linhas de controle para o registrador de deslocamento e para o LCD serão gerenciadas pelo PIC; 
@@ -47,7 +47,7 @@ Especificações:
 * * * *
 ### MEDIÇÃO DE TENSÃO E INDICAÇÃO EM % DE 5V (percentageADConv.ASM)  
  MODELO PARA O **PIC12F675**   
-**ESPECIFICAÇÕES:**  
+**Especificações:**  
  • A conversão A/D deve ser feita em 8 bits pela porta GP2;  
  • Faça a aquisição 32 valores para calcular a média de cada medida;  
  • A conversão A/D deve ser efetuada, em modo cíclico e tão rápido quanto possível (limitado pela velocidade do microcontrolador);  
@@ -67,7 +67,8 @@ Especificações:
 
 * * * *
 ### I2C SLAVE (I2CSLAVEP12F675.ASM e I2CSLAVEP16F628A.asm)  
-Especificações:  
+MODELO PARA O **PIC12F675** e **PIC16F628A**  
+**Especificações:**  
 * O protocolo I2C deve ser implementado no PIC no modo SLAVE; 
 * O PIC deve receber um byte de endereço e sinalizar sua identificação através de um LED; 
 * Quando o endereço for identificado como correto, um ACK deve ser enviado e o sinal CLK deve forçado a LOW por 200 ms; 
