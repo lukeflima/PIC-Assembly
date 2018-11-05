@@ -35,6 +35,7 @@ MODELO PARA O **PIC12F675**
 * Qualquer outra tecla pressionada deve piscar, com  período de 100 ms, o LED em GP5 
 * * * *
 ### LCD 4 BITS (LCD.ASM)
+MODELO PARA O **PIC12F675** 
 **Especificações:**  
 * Essa aplicação deve ser implementada com o kit disponível no LABEC2, que dispõe de um PIC12F675, um registrador de deslocamento e um LCD (desenvolvido por [Gutierrez](https://github.com/gutierrezps)) ; 
 ![Esquematico placa LCD](https://i.imgur.com/cTeNyUo.png)
