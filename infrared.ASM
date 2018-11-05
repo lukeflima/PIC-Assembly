@@ -1,0 +1,370 @@
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*	                    	INFRARED                               *
+;*								  							       *
+;*	       		DESENVOLVIDO POR LUCAS FERREIRA LIMA		   	   *
+;*			 		     DATA: 06/08/18			  				   *
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*                     DESCRIÇÃO DO ARQUIVO                        *
+;*-----------------------------------------------------------------*
+;*   MODELO PARA O PIC 12F675                                      *
+;* Objetivo: Implementar um receptor infra-vermelho (IR) que  	   *
+;* 				indique a tecla pressionada.					   *
+;*  Especificações:						  						   *
+;*	- O teclado do controle remoto SONY deve ser utilizado	   	   *
+;* para emitir o sinal IR;					   					   *
+;*	- O protocolo utilizado pela Sony deve ser respeitado;	   	   *
+;*	- A visualização da tecla pressionada (de 0 a 9) deve ser  	   *
+;* indicada em um display de 7 segmentos, no kit de bancada;	   *
+;*	- Qualquer outra tecla pressionada deve piscar, com	   		   *
+;* período de 100 ms, o LED em GP5				   				   *
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*                     ARQUIVOS DE DEFINIÇÕES                      *
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+#INCLUDE <p12f675.inc>	;ARQUIVO PADRÃO MICROCHIP PARA 12F675
+
+	__CONFIG _BODEN_OFF & _CP_OFF & _PWRTE_ON & _WDT_OFF & _MCLRE_OFF & _INTRC_OSC_NOCLKOUT
+
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*                    PAGINAÇÃO DE MEMÓRIA                         *
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;DEFINIÇÃO DE COMANDOS DE USUÁRIO PARA ALTERAÇÃO DA PÁGINA DE MEMÓRIA
+#DEFINE	BANK0	BCF STATUS,RP0	;SETA BANK 0 DE MEMÓRIA
+#DEFINE	BANK1	BSF STATUS,RP0	;SETA BANK 1 DE MAMÓRIA
+
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*                         VARIÁVEIS                               *
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+; DEFINIÇÃO DOS NOMES E ENDEREÇOS DE TODAS AS VARIÁVEIS UTILIZADAS 
+; PELO SISTEMA
+
+	CBLOCK	0x20	;ENDEREÇO INICIAL DA MEMÓRIA DE
+					;USUÁRIO
+		W_TEMP		;REGISTRADORES TEMPORÁRIOS PARA USO
+		STATUS_TEMP	;JUNTO ÀS INTERRUPÇÕES
+
+		HIGHDELAY
+		LOWDELAY
+		
+		CONT		;VARIAVEL DE CONTAGEM PARA SUBROTINA TIMER
+		OFFSET		;OFFSET DO TIMER, PARA A SUBROTINA TIMER
+		TMR		;VARIAVEL DE RETORNO DA SUBROTINA TIMER
+		
+		DISPLAYINTER	;USADO NA SUBROTINA DO DISPLAY
+		DISPLAY7	;ONDE SERÁ MOSTRADO O VALOR DO DISPLAY
+		
+		BITCOUNTER	;NUMERO DE BIT PARA RECEBER
+		RECIEVIDBITS	;AMAZENA INFO RECEBIDA
+		
+		FED		;VARIAVEL DE CONTEXTO DO FALLING EDGE DETECTION
+		FEDRET		;VARIAVEL DE RETORNO DO FALLING EDGE DETECTION
+	ENDC			;FIM DO BLOCO DE MEMÓRIA
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*                        FLAGS INTERNOS                           *
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+; DEFINIÇÃO DE TODOS OS FLAGS UTILIZADOS PELO SISTEMA
+#DEFINE	TMRCHECK TMR,0		;TESTE SE TEMPO FOI FINALIZADO
+#DEFINE FEDCHECK FEDRET,0	
+#DEFINE BIT0 DISPLAYINTER,0	;BITS DO BCD DO DISPLAY
+#DEFINE BIT1 DISPLAYINTER,1	
+#DEFINE BIT2 DISPLAYINTER,2
+#DEFINE BIT3 DISPLAYINTER,4
+
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*                         CONSTANTES                              *
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+; DEFINIÇÃO DE TODAS AS CONSTANTES UTILIZADAS PELO SISTEMA
+
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*                           ENTRADAS                              *
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+; DEFINIÇÃO DE TODOS OS PINOS QUE SERÃO UTILIZADOS COMO ENTRADA
+; RECOMENDAMOS TAMBÉM COMENTAR O SIGNIFICADO DE SEUS ESTADOS (0 E 1)
+#DEFINE SENSOR GPIO, GP3
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*                           SAÍDAS                                *
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+; DEFINIÇÃO DE TODOS OS PINOS QUE SERÃO UTILIZADOS COMO SAÍDA
+; RECOMENDAMOS TAMBÉM COMENTAR O SIGNIFICADO DE SEUS ESTADOS (0 E 1)
+#DEFINE LED GPIO, GP5		;PORTA DO LED
+				; 1 -> LED1 ON; LED2 OFF
+				; 0 -> LED1 OFF; LED2 ON 
+
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*                       VETOR DE RESET                            *
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+	ORG	0x00			;ENDEREÇO INICIAL DE PROCESSAMENTO
+	GOTO	INICIO
+	
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*                    INÍCIO DA INTERRUPÇÃO                        *
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+; ENDEREÇO DE DESVIO DAS INTERRUPÇÕES. A PRIMEIRA TAREFA É SALVAR OS
+; VALORES DE "W" E "STATUS" PARA RECUPERAÇÃO FUTURA
+
+	ORG	0x04			;ENDEREÇO INICIAL DA INTERRUPÇÃO
+	MOVWF	W_TEMP		;COPIA W PARA W_TEMP
+	SWAPF	STATUS,W
+	MOVWF	STATUS_TEMP	;COPIA STATUS PARA STATUS_TEMP
+
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*                    ROTINA DE INTERRUPÇÃO                        *
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+; AQUI SERÁ ESCRITA AS ROTINAS DE RECONHECIMENTO E TRATAMENTO DAS
+; INTERRUPÇÕES
+
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*                 ROTINA DE SAÍDA DA INTERRUPÇÃO                  *
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+; OS VALORES DE "W" E "STATUS" DEVEM SER RECUPERADOS ANTES DE 
+; RETORNAR DA INTERRUPÇÃO
+
+SAI_INT
+	SWAPF	STATUS_TEMP,W
+	MOVWF	STATUS		;MOVE STATUS_TEMP PARA STATUS
+	SWAPF	W_TEMP,F
+	SWAPF	W_TEMP,W	;MOVE W_TEMP PARA W
+	RETFIE
+
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*	            	 ROTINAS E SUBROTINAS                      	   *
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+; CADA ROTINA OU SUBROTINA DEVE POSSUIR A DESCRIÇÃO DE FUNCIONAMENTO
+; E UM NOME COERENTE ÀS SUAS FUNÇÕES.
+
+;DELAY DE 100MS PARA O PISCAR DO LED
+DELAY
+	MOVLW	.135
+	MOVWF	HIGHDELAY
+HIGHLOOP
+	MOVLW	.255
+	MOVWF	LOWDELAY
+LOWLOOP
+	DECFSZ	LOWDELAY
+	GOTO	LOWLOOP
+	DECFSZ	HIGHDELAY
+	GOTO	HIGHLOOP
+	RETURN
+
+;SUBROTINA RESPONSÁVEL PARA A DECODIFICAÇÃO DO DADO RECEBIDO, PARA O DADO QUE SERÁ EXIBIDO!
+CONVERTER									
+	MOVFW	RECIEVIDBITS	;CHECA SE O DADO RECEBIDO É MAIOR QUE 10
+	SUBLW	.10		;SE FOR, VAI PARA A LABEL BLINK
+	BTFSS	STATUS, C
+	GOTO	BLINK
+	MOVFW	RECIEVIDBITS	;BLOCO DE CÓDIGO RESPONSÁVEL PARA A DECODIFICAÇÃO
+	ADDWF	PCL,F		;DO DADO RECEBIDO, PARA O DADO QUE SERÁ EXIBIDO!
+				;USANDO O PCL (BYTE MENOS SIGNIFICATIVO DO PROGRAM COUNTER)
+	RETLW	.1		;AO SOMAR O VALOR RECEBIDO DO IR, IRÁ DEVIAR O PROGRAMA
+	RETLW	.2		;POR ESSE VALOR, PODENDO ASSIM RETORNAR O VALOR DESEJADO
+	RETLW	.3		;PARA A SUBROTINA DE DISPLAY DEPENDENDO DO VALOR RECEBIDO.
+	RETLW	.4		
+	RETLW	.5
+	RETLW	.6
+	RETLW	.7
+	RETLW	.8
+	RETLW	.9
+	RETLW	.0
+BLINK			    ;FAZ LED (GP5) PISCAR
+	BSF	LED	    ;ACENDE LED
+	CALL	DELAY	    ;DELAY DE 100mS
+	BCF	LED	    ;APAGA LED
+	RETLW	.10	    ;VALOR RETORNADO PARA NÃO MOSTRAR NADA NO DISPLAY
+
+;MOSTRAR NUMERO (0 - 9) NO REGITRADOR DISPLAY7 NUM DISPLAY DE 7 SEGMEENTOS
+;USANDO OS PINOS GP0, GP1, GP2, GP4 SENDO O GP0 O MENOS SIGNIFICATIVO
+;SEGUIDO DO GP1 E GP2, E O GP4 O MAIS SIGNIFICATIVO
+;USANDO UMA VARIÁVEL INTERMEDIÁRIA PARA ATUALIZAR O GPIO DE UM SÓ VEZ
+DISPLAY
+	CALL	CONVERTER
+	MOVWF	DISPLAY7
+	MOVFW	GPIO		;COPIA TEMPORARIA DE GPIO PARA
+	MOVWF	DISPLAYINTER	;NÃO PERDER INFORMAÇÃO DO GPIO
+	
+	BCF	BIT0		;LIMPA OS BIT DO DISPLAY
+	BCF	BIT1	    
+	BCF	BIT2
+	BCF	BIT3
+	
+	BTFSC	DISPLAY7,0	;TESTA SE BIT ESTA SETADO
+	BSF	BIT0		;SE ESTIVER SETA O BIT DO BCD
+	BTFSC	DISPLAY7,1
+	BSF	BIT1
+	BTFSC	DISPLAY7,2
+	BSF	BIT2
+	BTFSC	DISPLAY7,3
+	BSF	BIT3
+	
+	MOVFW	DISPLAYINTER	;ATUALIZA ESTADO DO GPIO
+	MOVWF	GPIO
+	RETURN
+
+;SUBROTINA QUE CHECA SE TIMER TERMINOU
+;SE TERMINADO RETORNA 1 NA VARIAVEL TMR
+;SE NÃO RETORNA NA VARIAVEL TMR
+;SETAR OFFSET E CONT PARA O FUNCIONAMENTO DA SUBROTINA
+;CONT	=>  CONTAR QUANTAS VEZES O TIMER IRÁ ESTOURAR
+;OFFSET =>  VALOR QUE O TIMER SERÁ INCIALIZADO
+TIMER
+	CLRF	TMR	    ;LIMPA TMR
+	BTFSS	INTCON, T0IF;CHECA SE TIMER ESTOROU
+	RETURN		    ;SE NÃO	    , RETORNA COM 00 NO TMR
+	BCF	INTCON, T0IF;SE SIM, LIMPA BIT DE INTERRUPÇÃO
+	MOVFW	OFFSET	    ;RE-SETA O VALOR DO TIMER0 COM OFFSET
+	MOVWF	TMR0	
+	DECFSZ	CONT	    ;E DECREMENTA O CONTADOR
+	RETURN		    ;SE NAO ACABOU  , RETORNA COM 00 NO TMR
+	COMF	TMR	    ;SE ACABOU	    , RETORNA COM FF NO TMR
+	RETURN
+
+;SUBROTINA QUE INDENTIFICA SE OUVE OU NÃO UMA BORDA DE DESCIDA
+;SETA BIT 0 DA VARIAVEL FEDRET (FEDCHECK) SE DETECTAR UMA BORDA DE DESCIDA
+;LIMPA O BIT 0 DA VARIAVEL FEDRET (FEDCHECK) CASO CONTRÁRIO
+FALLINGEDGEDETECTION
+	BTFSC	FED, 0
+	GOTO	IDLE2
+IDLE1
+	BTFSS	SENSOR	    ;TESTA SE O SINAL ESTÁ HIGH
+	GOTO	IDLE1INTER1 ;SE NÃO ESTIVER, RETORNA 0 EM FEDCHECK
+	GOTO	IDLE1INTER2 ;SE ESTIVER, MUDA O CONTEXTO PARA DETECTAR 
+IDLE1INTER1		    ;TRANSIÇÃO DE 1 PARA 0 SETANDO O BIT DA VARIAVEL
+	BCF	FEDCHECK    ;FED, MAS AINDA RETORNA 0 EM FEDCHECK
+	RETURN
+IDLE1INTER2	
+	BCF	FEDCHECK
+	BSF	FED,0
+	RETURN
+IDLE2		
+	BTFSC	SENSOR	    ;TESTA SE O SINAL ESTÁ EM LOW
+	GOTO	IDLE2INTER1 ;SE NAO, RETORNA 0 EM FEDCHECK
+	GOTO	IDLE2INTER2 ;SE ESTIVER, SINALIZA QUE OUVE UMA QUEDA
+IDLE2INTER1
+	BCF	FEDCHECK
+	RETURN
+IDLE2INTER2	
+	BSF	FEDCHECK
+	BCF	FED,0
+	RETURN
+	
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*                     INICIO DO PROGRAMA                          *
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	
+INICIO
+	BANK1				;ALTERA PARA O BANCO 1
+	MOVLW	B'00001000' ;CONFIGURA TODAS AS PORTAS DO GPIO (PINOS)
+	MOVWF	TRISIO		;COMO SAÍDAS E GP3 COMO ENTRADA
+	CLRF	ANSEL 		;DEFINE PORTAS COMO Digital I/O
+	MOVLW	B'00000001'	;PRESCALE 1:4
+	MOVWF	OPTION_REG	;DEFINE OPÇÕES DE OPERAÇÃO
+	MOVLW	B'00000000'
+	MOVWF	INTCON		;DEFINE OPÇÕES DE INTERRUPÇÕES
+	CALL	0X3FF
+	MOVWF	OSCCAL
+	BANK0				;RETORNA PARA O BANCO
+	MOVLW	B'00000111'
+	MOVWF	CMCON		;DEFINE O MODO DE OPERAÇÃO DO COMPARADOR ANALÓGICO
+
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*                     INICIALIZAÇÃO DAS VARIÁVEIS                 *
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*                     ROTINA PRINCIPAL                            *
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+MAIN
+	BCF	FEDCHECK
+	CLRF	FED
+	CLRF	RECIEVIDBITS;LIMPA VARIAVEL DE BITS RECEBIDOS
+	MOVLW	.7	    ;INCIALIZA A QUANTIDADE DE BITS A RECEBER COM 7
+	MOVWF	BITCOUNTER
+IDLE
+	CALL	FALLINGEDGEDETECTION
+	BTFSS	FEDCHECK
+	GOTO	IDLE
+	
+	BCF	INTCON, T0IF
+	MOVLW	.132	    ;INICIALIZA TIMER PARA CONTAR 2500 uS
+	MOVWF	OFFSET
+	CLRF	TMR0	    ;ENQUANTO TIMER ESTIVER CONTANDO
+	MOVWF	TMR0	    ;IRÁ DETECTAR ALGUMA FALLING EDGE
+    	MOVLW	.5	    ;SE OCORRER BORDA DE DESCIDA RECOMEÇAR PROGRAMA
+	MOVWF	CONT
+INITIALBIT
+	CALL	FALLINGEDGEDETECTION	;DETECTA SE OUVE BORDA DE DESCIDA
+	BTFSC	FEDCHECK		;SE SIM, REINICIA O PROGRAMA
+	GOTO	MAIN			;SE NÃO, TESTA TIME
+	CALL	TIMER			;SE TIMER TERMINADO, CONTINUA O PROGRAMA
+	BTFSS	TMRCHECK		;SE NÃO, RETORNA PARA DETECÇÃO DE BORDA
+	GOTO	INITIALBIT
+
+;*******************************************************************
+AFTER
+	
+	BCF	INTCON, T0IF
+	MOVLW	.155	    ;INICIALIZA TIMER PARA CONTAR 1200 uS
+	MOVWF	OFFSET
+	CLRF	TMR0	    ;ENQUANTO TIMER ESTIVER CONTANDO
+	MOVWF	TMR0	    ;IRÁ DETECTAR ALGUMA FALLING EDGE
+    	MOVLW	.3	    ;SE OCORRER UMA BORDA DE DESCIDA,
+	MOVWF	CONT	    ;RECONHECIMENTO DE BIT É INCIALIZADO
+	BCF	FEDCHECK
+	CLRF	FED
+BITWAIT	
+	CALL	FALLINGEDGEDETECTION	;DETECTA SE OUVE BORDA DE DESCIDA
+	BTFSC	FEDCHECK		;SE SIM, VAI PARA DETECÇÃO DE BIT
+	GOTO	BITRECO			;SE NÃO, TESTA TIME
+	CALL	TIMER			;SE TIMER TERMINADO, REINCIA PROGRAMA
+	BTFSS	TMRCHECK		;SE NÃO, RETORNA PARA DETECÇÃO DE BORDA
+	GOTO	BITWAIT
+	GOTO	MAIN
+
+;****************************************************************
+BITRECO
+	
+	BCF	INTCON, T0IF
+	MOVLW	.20	    ;INICIALIZA TIMER PARA CONTAR 900 uS
+	MOVWF	OFFSET
+	CLRF	TMR0	    ;ENQUANTO TIMER ESTIVER CONTANDO
+	MOVWF	TMR0	    ;IRÁ DETECTAR ALGUMA FALLING EDGE
+    	MOVLW	.1	    ;SE OCORRER BORDA DE DESCIDA RECOMEÇAR PROGRAMA
+	MOVWF	CONT
+	BCF	FEDCHECK
+	CLRF	FED
+BITWAIT2	
+	CALL	FALLINGEDGEDETECTION	;DETECTA SE OUVE BORDA DE DESCIDA
+	BTFSC	FEDCHECK		;SE SIM, REINICIA O PROGRAMA
+	GOTO	MAIN			;SE NÃO, TESTA TIME
+	CALL	TIMER			;SE TIMER TERMINADO, RECONHECIMENTO DE BIT
+	BTFSS	TMRCHECK		;SE NÃO, RETORNA PARA DETECÇÃO DE BORDA
+	GOTO	BITWAIT2
+
+;******************************************************************************
+AFTER2
+	BTFSS	SENSOR	    ;CHECA QUAL O VALOR NA ENTRADA
+	GOTO	UM	    ;SE VALOR FOR LOW NA ENTRADA, RECEBE 1
+	GOTO	ZERO	    ;SE VALOR FOR HIGH NA ENTRADA, RECEBE 0
+UM
+	BSF	STATUS, C   ;SETA O CARRY PARA PREPARAR PARA SHIFT
+	RRF	RECIEVIDBITS;SHIFT A DIREITA PARA O DESLOCAMENTO DE BIT MENOS SIGNIFICATIVOS
+	DECFSZ	BITCOUNTER  ;TESTA SE RECEBEU TODOS OS BITS 
+	GOTO	AFTER	    ;SE NÃO, VOLTA PARA O RECEBIMENTO DO PROXIMO BIT
+	GOTO	DATAREADY   ;SE SIM, DESVIA PARA MOSTRAR A INFO RECEBIDA
+ZERO
+	BCF	STATUS, C   ;SETA O CARRY PARA PREPARAR PARA SHIFT
+	RRF	RECIEVIDBITS;SHIFT A DIREITA PARA O DESLOCAMENTO DE BIT MENOS SIGNIFICATIVOS
+	DECFSZ	BITCOUNTER  ;TESTA SE RECEBEU TODOS OS BITS 
+	GOTO	AFTER	    ;SE NÃO, VOLTA PARA O RECEBIMENTO DO PROXIMO BIT
+DATAREADY		    ;SE SIM, MOSTRA A INFO RECEBIDA
+	BCF	STATUS, C   ;ADCIONA UM 0 A ESQUERDA PARA COMPLETAR 8 BITS
+	RRF	RECIEVIDBITS
+	CALL	DISPLAY	    ;CHAMA ROTINA DE DISPLAY PARA MOSTRAR INFORMAÇÃO
+	GOTO	MAIN
+
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+;*                       FIM DO PROGRAMA                           *
+;* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+	END
