@@ -45,24 +45,26 @@ Especificações:
 * O LCD deve ser configurado para receber dados em grupos de 4 bit; 
 * Após o procedimento de inicialização, escreva seu nome no LCD.
 * * * *
-### MEDIÇÃO DE TENSÃO E INDICAÇÃO EM % DE 5V (percentageADConv.ASM)
- MODELO PARA O **PIC12F675** 
-**ESPECIFICAÇÕES:**
- • A conversão A/D deve ser feita em 8 bits pela porta GP2; 
- • Faça a aquisição 32 valores para calcular a média de cada medida; 
- • A conversão A/D deve ser efetuada, em modo cíclico e tão rápido quanto possível (limitado pela velocidade do microcontrolador); 
- • O valor da média conversão A/D deve ser transformado para o correspondente percentual de tensão, com 100% correspondendo a 5V; 
- • O valor do percentual da tensão, em notação de base decimal, deve ser visualizado no display LCD; 
- • O valor mostrado no display deve ser atualizado a cada 200 ms; 
- • Faça reuso das suas rotinas desenvolvidas na atividade 2/Av2 para indicação no LCD; 
- • Veja alguns exemplos: 
-| Tensão medida (V) | Valor mostrado no display |
-|:-----------------:|:-------------------------:|
-|        0,4        |            8 %            |
-|        1,8        |            36 %           |
-|        2,7        |            54 %           |
-|        4,5        |            90 %           |
-|        5,0        |           100 %           |
+### MEDIÇÃO DE TENSÃO E INDICAÇÃO EM % DE 5V (percentageADConv.ASM)  
+ MODELO PARA O **PIC12F675**   
+**ESPECIFICAÇÕES:**  
+ • A conversão A/D deve ser feita em 8 bits pela porta GP2;  
+ • Faça a aquisição 32 valores para calcular a média de cada medida;  
+ • A conversão A/D deve ser efetuada, em modo cíclico e tão rápido quanto possível (limitado pela velocidade do microcontrolador);  
+ • O valor da média conversão A/D deve ser transformado para o correspondente percentual de tensão, com 100% correspondendo a 5V;  
+ • O valor do percentual da tensão, em notação de base decimal, deve ser visualizado no display LCD;  
+ • O valor mostrado no display deve ser atualizado a cada 200 ms;  
+ • Faça reuso das suas rotinas desenvolvidas na atividade 2/Av2 para indicação no LCD;  
+ • Veja alguns exemplos:  
+ 
+| 	Tensão medida (V) 	|	 Valor mostrado no display 	|
+|	:-----------------:	|	:-------------------------:	|
+| 	       0,4        	|  	          8 %            	|
+| 	       1,8        	|  	          36 %           	|
+| 	       2,7        	|  	          54 %           	|
+|   	     4,5        	|  	          90 %           	|
+|  	      5,0        	|  	         100 %           	|
+
 * * * *
 ### I2C SLAVE (I2CSLAVEP12F675.ASM e I2CSLAVEP16F628A.asm)  
 Especificações:  
