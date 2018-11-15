@@ -37,7 +37,7 @@ MODELO PARA O **PIC12F675**
 ### LCD 4 BITS (LCD.ASM)
 MODELO PARA O **PIC12F675** 
 **Especificações:**  
-* Essa aplicação deve ser implementada com o kit disponível no LABEC2, que dispõe de um PIC12F675, um registrador de deslocamento e um LCD (desenvolvido por [Gutierrez](https://github.com/gutierrezps)) ; 
+* Essa aplicação deve ser implementada com o kit disponível no LABEC2, que dispõe de um PIC12F675, um registrador de deslocamento e um LCD (com uma placa desenvolvida por [Gutierrez](https://github.com/gutierrezps)) ; 
 ![Esquematico placa LCD](https://i.imgur.com/cTeNyUo.png)
 * Todas as linhas de controle para o registrador de deslocamento e para o LCD serão gerenciadas pelo PIC; 
 * O dado a ser transmitido ao LCD deverá ser enviado para um registrador de deslocamento (shift register – 74164 – ver data sheet); 
