@@ -2,7 +2,7 @@
 Códigos em assembly para microcontroladores PIC.  
 ## Descrição dos programas  
 
-### SEMÁFORO DE TRÂNSITO (TrafficSemaphore.ASM)  
+### SEMÁFORO DE TRÂNSITO [(TrafficSemaphore.ASM)](TrafficSemaphore.ASM)  
  MODELO PARA O **PIC12F675**  
 **Especificações:**  
 * Utilize dois LEDs (verde e vermelho) aplicados a uma únicaporta para funcionar em oposição, segundo a notação:   
@@ -12,7 +12,7 @@ Códigos em assembly para microcontroladores PIC.
 * A contagem deve ser indicada em um display de 7 segmentos;  
 * Por se tratar de um semáforo didático, cada transição da contagem (indicada no display) deve ocorrer a cada 300 ms.   
 * * * *
-### PISCA ALERTA (BlinkerAlert.ASM)
+### PISCA ALERTA [(BlinkerAlert.ASM)](BlinkerAlert.ASM)
 MODELO PARA O **PIC12F675**  
 **Especificações:** 
 * Um interruptor de 3 posições, para acender 2 LEDs (LED-E e LED-D);   
@@ -24,7 +24,7 @@ MODELO PARA O **PIC12F675**
 * GP1 e GP2 deverão ser utilizados para o interruptor de 3 posições;
 * GP4 e GP5 deverão ser utilizados, respectivamente, para os LED-E e LED-D.
 * * * *
-### INFRARED (infrared.ASM)
+### INFRARED [(infrared.ASM)](infrared.ASM)
  MODELO PARA O **PIC12F675**  
 **Objetivo**: Implementar um receptor infra-vermelho (IR) que indique a tecla pressionada. *
 
@@ -34,7 +34,7 @@ MODELO PARA O **PIC12F675**
 * A visualização da tecla pressionada (de 0 a 9) deve ser  indicada em um display de 7 segmentos, no kit de bancada; 
 * Qualquer outra tecla pressionada deve piscar, com  período de 100 ms, o LED em GP5 
 * * * *
-### LCD 4 BITS (LCD.ASM)
+### LCD 4 BITS [(LCD.ASM)](LCD.ASM)
 MODELO PARA O **PIC12F675** 
 **Especificações:**  
 * Essa aplicação deve ser implementada com o kit disponível no LABEC2, que dispõe de um PIC12F675, um registrador de deslocamento e um LCD (com uma placa desenvolvida por [Gutierrez](https://github.com/gutierrezps)) ; 
@@ -46,7 +46,7 @@ MODELO PARA O **PIC12F675**
 * O LCD deve ser configurado para receber dados em grupos de 4 bit; 
 * Após o procedimento de inicialização, escreva seu nome no LCD.
 * * * *
-### MEDIÇÃO DE TENSÃO E INDICAÇÃO EM % DE 5V (percentageADConv.ASM)  
+### MEDIÇÃO DE TENSÃO E INDICAÇÃO EM % DE 5V [(percentageADConv.ASM)](percentageADConv.ASM)  
  MODELO PARA O **PIC12F675**   
 **Especificações:**  
  • A conversão A/D deve ser feita em 8 bits pela porta GP2;  
@@ -67,7 +67,7 @@ MODELO PARA O **PIC12F675**
 |  	      5,0        	|  	         100 %           	|
 
 * * * *
-### I2C SLAVE (I2CSLAVEP12F675.ASM e I2CSLAVEP16F628A.asm)  
+### I2C SLAVE ([I2CSLAVEP12F675.ASM](I2CSLAVEP12F675.ASM) e [I2CSLAVEP16F628A.asm](I2CSLAVEP16F628A.asm)) 
 MODELO PARA O **PIC12F675** e **PIC16F628A**  
 **Especificações:**  
 * O protocolo I2C deve ser implementado no PIC no modo SLAVE; 
